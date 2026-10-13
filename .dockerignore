@@ -1,0 +1,13 @@
+.git
+.gitignore
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+tests
+Jenkinsfile
+test-results.xml
+build-info.txt
+README.md
+app-version.txt

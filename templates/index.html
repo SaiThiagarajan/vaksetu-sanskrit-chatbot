@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>वाक्सेतुः VākSetu, a multilingual Sanskrit chatbot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Sanskrit:ital@0;1&family=Tiro+Tamil&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --wood: #4a3322;        /* manuscript cover board */
+      --wood-dark: #33231a;
+      --leaf: #e8cf8e;        /* palm leaf */
+      --leaf-light: #f2e2b4;
+      --leaf-edge: #c9a75b;
+      --ink: #231a10;         /* lamp-black ink */
+      --ink-soft: #5c4630;
+      --sindura: #a8281e;     /* red rubric ink */
+      --nila: #26386e;        /* indigo */
+      --font: "Tiro Devanagari Sanskrit", "Tiro Tamil", "Noto Serif Devanagari", "Noto Serif Tamil", Georgia, serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: var(--font);
+      color: var(--ink);
+      background:
+        repeating-linear-gradient(92deg, rgba(0,0,0,.06) 0 2px, transparent 2px 9px),
+        linear-gradient(180deg, var(--wood) 0%, var(--wood-dark) 100%);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 32px 14px;
+    }
+    .leaf {
+      position: relative;
+      width: 100%;
+      max-width: 780px;
+      background: linear-gradient(180deg, var(--leaf-light), var(--leaf) 30%, var(--leaf) 75%, #dfc27c);
+      border-radius: 28px / 18px;
+      border: 1px solid var(--leaf-edge);
+      box-shadow: 0 24px 50px -24px rgba(0,0,0,.7);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    /* the two string holes of a palm-leaf manuscript */
+    .leaf::before, .leaf::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: var(--wood-dark);
+      box-shadow: inset 0 1px 3px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.35);
+    }
+    .leaf::before { left: 14px; }
+    .leaf::after { right: 14px; }
+
+    header { padding: 26px 52px 14px; text-align: center; }
+    h1 {
+      font-weight: 400;
+      font-size: clamp(2.2rem, 6vw, 3.1rem);
+      line-height: 1.05;
+      color: var(--sindura);
+      letter-spacing: .01em;
+    }
+    h1 .danda { color: var(--ink-soft); font-size: .8em; padding: 0 .25em; }
+    .subtitle { margin-top: 6px; font-size: 1.05rem; color: var(--ink-soft); font-style: italic; }
+    .toolbar {
+      margin-top: 14px;
+      display: flex; gap: 14px; justify-content: center; align-items: center; flex-wrap: wrap;
+      font-size: .95rem;
+    }
+    .toolbar label { color: var(--ink-soft); }
+    select {
+      font: inherit;
+      color: var(--ink);
+      background: var(--leaf-light);
+      border: 1px solid var(--leaf-edge);
+      border-radius: 6px;
+      padding: 4px 10px;
+    }
+    #status { color: var(--ink-soft); }
+    #status.ok::before { content: "●"; color: #2f6b3a; margin-right: 6px; }
+    #status.down::before { content: "●"; color: var(--sindura); margin-right: 6px; }
+
+    #chat {
+      height: 430px;
+      overflow-y: auto;
+      margin: 0 40px;
+      padding: 18px 12px;
+      border-top: 1px solid rgba(35,26,16,.25);
+      border-bottom: 1px solid rgba(35,26,16,.25);
+      display: flex; flex-direction: column; gap: 12px;
+      background-image: repeating-linear-gradient(180deg, transparent 0 33px, rgba(35,26,16,.07) 33px 34px);
+    }
+    .msg { max-width: 88%; line-height: 1.6; font-size: 1.04rem; white-space: pre-line; overflow-wrap: anywhere; }
+    .msg.bot { align-self: flex-start; padding: 6px 4px 6px 14px; border-left: 3px solid var(--sindura); }
+    .msg.user {
+      align-self: flex-end;
+      background: var(--nila);
+      color: var(--leaf-light);
+      padding: 8px 14px;
+      border-radius: 14px 14px 4px 14px;
+    }
+    .msg.error { border-left-color: var(--ink); color: var(--sindura); }
+    .msg.pending { color: var(--ink-soft); font-style: italic; }
+    .meta { display: block; font-size: .78rem; color: var(--sindura); font-style: italic; margin-bottom: 2px; }
+
+    .forms-wrap { overflow-x: auto; margin-top: 8px; }
+    table.forms { border-collapse: collapse; font-size: .95rem; white-space: pre-line; }
+    table.forms th, table.forms td { border: 1px solid rgba(35,26,16,.3); padding: 5px 9px; text-align: left; vertical-align: top; }
+    table.forms th { color: var(--sindura); font-weight: 400; background: rgba(242,226,180,.6); }
+    table.forms td.case { color: var(--ink-soft); font-size: .88rem; }
+
+    .examples { padding: 12px 52px 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .examples span { color: var(--ink-soft); font-size: .92rem; margin-right: 2px; }
+    .chip {
+      font: inherit; font-size: .9rem;
+      color: var(--ink);
+      background: transparent;
+      border: 1px solid var(--leaf-edge);
+      border-radius: 999px;
+      padding: 2px 12px;
+      cursor: pointer;
+    }
+    .chip:hover { background: var(--leaf-light); }
+
+    .composer { display: flex; gap: 10px; padding: 12px 52px 16px; }
+    #message {
+      flex: 1;
+      font: inherit; font-size: 1.05rem;
+      color: var(--ink);
+      background: var(--leaf-light);
+      border: 1px solid var(--leaf-edge);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    #send {
+      font: inherit; font-size: 1.05rem;
+      color: var(--leaf-light);
+      background: var(--sindura);
+      border: none;
+      border-radius: 8px;
+      padding: 0 20px;
+      cursor: pointer;
+    }
+    #send:hover { background: #8e1f17; }
+    :focus-visible { outline: 2px solid var(--nila); outline-offset: 2px; }
+
+    footer {
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px;
+      padding: 10px 52px 16px;
+      font-size: .85rem; color: var(--ink-soft);
+    }
+    @media (max-width: 600px) {
+      header, .examples, .composer, footer { padding-left: 20px; padding-right: 20px; }
+      #chat { margin: 0 12px; height: 60vh; }
+      .leaf::before, .leaf::after { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="leaf">
+    <header>
+      <h1><span class="danda">॥</span>वाक्सेतुः<span class="danda">॥</span></h1>
+      <p class="subtitle">VākSetu, a multilingual computational Sanskrit assistant</p>
+      <div class="toolbar">
+        <label for="language">Reply in</label>
+        <select id="language">
+          {% for code, name in languages.items() %}
+          <option value="{{ code }}">{{ name }}</option>
+          {% endfor %}
+        </select>
+        <span id="status">Checking server</span>
+      </div>
+    </header>
+
+    <section id="chat" aria-live="polite"></section>
+
+    <div class="examples">
+      <span>Try</span>
+      <button class="chip" data-cmd="translit संस्कृतम्">translit</button>
+      <button class="chip" data-cmd="sandhi deva + ālaya">sandhi</button>
+      <button class="chip" data-cmd="decline rāma">decline</button>
+      <button class="chip" data-cmd="number 18">number</button>
+      <button class="chip" data-cmd="calc 12 * (3 + 4)">calc</button>
+      <button class="chip" data-cmd="meaning water">meaning</button>
+      <button class="chip" data-cmd="subhashita">subhashita</button>
+      <button class="chip" data-cmd="help">help</button>
+    </div>
+
+    <div class="composer">
+      <input id="message" type="text" autocomplete="off"
+             placeholder="Type in English, संस्कृतम्, हिन्दी or தமிழ்" aria-label="Message">
+      <button id="send">Send</button>
+    </div>
+
+    <footer>
+      <span>Sai Thiagarajan, 23MIS1150</span>
+      <span>Build v{{ version }}, Flask + Docker + Jenkins</span>
+    </footer>
+  </main>
+
+  <script>
+    const chatEl = document.getElementById("chat");
+    const input = document.getElementById("message");
+    const langSel = document.getElementById("language");
+    const statusEl = document.getElementById("status");
+
+    function bubble(kind, text, meta) {
+      const div = document.createElement("div");
+      div.className = "msg " + kind;
+      if (meta) {
+        const m = document.createElement("span");
+        m.className = "meta";
+        m.textContent = meta;
+        div.appendChild(m);
+      }
+      const body = document.createElement("span");
+      body.textContent = text;
+      div.appendChild(body);
+      chatEl.appendChild(div);
+      chatEl.scrollTop = chatEl.scrollHeight;
+      return div;
+    }
+
+    function addTable(div, table) {
+      const wrap = document.createElement("div");
+      wrap.className = "forms-wrap";
+      const t = document.createElement("table");
+      t.className = "forms";
+      const head = t.createTHead().insertRow();
+      table.headers.forEach(h => {
+        const th = document.createElement("th");
+        th.textContent = h;
+        head.appendChild(th);
+      });
+      const tbody = t.createTBody();
+      table.rows.forEach(row => {
+        const tr = tbody.insertRow();
+        row.forEach((cell, i) => {
+          const td = tr.insertCell();
+          td.textContent = cell;
+          if (i === 0) td.className = "case";
+        });
+      });
+      wrap.appendChild(t);
+      div.appendChild(wrap);
+      chatEl.scrollTop = chatEl.scrollHeight;
+    }
+
+    const LANG_NAMES = { en: "English", sa: "Sanskrit", hi: "Hindi", ta: "Tamil" };
+
+    async function send(text) {
+      text = (text ?? input.value).trim();
+      if (!text) return;
+      input.value = "";
+      bubble("user", text);
+      const pending = bubble("bot pending", "thinking");
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text, language: langSel.value })
+        });
+        const data = await res.json();
+        pending.remove();
+        if (!res.ok) { bubble("bot error", data.error || "The server returned an error."); return; }
+        const div = bubble("bot", data.reply, `${data.intent}, in ${LANG_NAMES[data.language] || data.language}`);
+        if (data.table) addTable(div, data.table);
+      } catch (err) {
+        pending.remove();
+        bubble("bot error", "Can't reach the server. Check that the app or container is running.");
+      }
+      input.focus();
+    }
+
+    document.getElementById("send").addEventListener("click", () => send());
+    input.addEventListener("keydown", e => { if (e.key === "Enter") send(); });
+    document.querySelectorAll(".chip").forEach(chip =>
+      chip.addEventListener("click", () => send(chip.dataset.cmd)));
+
+    fetch("/health")
+      .then(r => r.json())
+      .then(d => { statusEl.textContent = `Server online, v${d.version}`; statusEl.className = "ok"; })
+      .catch(() => { statusEl.textContent = "Server offline"; statusEl.className = "down"; });
+
+    bubble("bot", "नमो नमः! 🙏 I'm VākSetu. Ask me in English, Sanskrit, Hindi or Tamil, or tap an example below.", "welcome");
+  </script>
+</body>
+</html>

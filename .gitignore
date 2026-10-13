@@ -1,0 +1,10 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+test-results.xml
+build-info.txt
+app-version.txt
+.env
+.env.*
